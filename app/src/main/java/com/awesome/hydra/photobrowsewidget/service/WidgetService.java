@@ -68,14 +68,17 @@ class StackRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
 
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
-            rv.setBitmap(R.id.widget_item, "setImageBitmap", bitmap);
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() / 4, bitmap.getHeight() / 4, true);
+            bitmap.recycle();
+
+            rv.setBitmap(R.id.widget_item, "setImageBitmap", scaledBitmap);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
         Bundle extras = new Bundle();
-        extras.putInt("Some String", position);
+        extras.putString("Some String", PhotoList.photoGalleries.get(position));
         Intent fillInIntent = new Intent();
         fillInIntent.putExtras(extras);
         rv.setOnClickFillInIntent(R.id.widget_item, fillInIntent);

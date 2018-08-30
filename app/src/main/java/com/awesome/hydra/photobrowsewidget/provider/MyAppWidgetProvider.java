@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import com.awesome.hydra.photobrowsewidget.R;
 import com.awesome.hydra.photobrowsewidget.service.PhotoService;
@@ -64,5 +65,18 @@ public class MyAppWidgetProvider extends AppWidgetProvider {
         super.onEnabled(context);
 
         PhotoService.getInstance().queryPhotoUri(context);
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+        if (intent.getAction().equals("com.example.android.stackwidget.TOAST_ACTION")) {
+            int appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
+                    AppWidgetManager.INVALID_APPWIDGET_ID);
+            String viewIndex = intent.getStringExtra("Some String");
+            Toast.makeText(context, "Touched view " + viewIndex, Toast.LENGTH_SHORT).show();
+            PhotoService.getInstance().queryPhotoUri(context);
+        }
+        super.onReceive(context, intent);
     }
 }
