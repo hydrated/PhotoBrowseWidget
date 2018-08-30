@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.awesome.hydra.photobrowsewidget.R;
+import com.awesome.hydra.photobrowsewidget.service.PhotoService;
 import com.awesome.hydra.photobrowsewidget.service.WidgetService;
 import com.awesome.hydra.photobrowsewidget.util.GetPictureUtil;
 import com.bumptech.glide.Glide;
@@ -23,50 +24,37 @@ import bolts.Task;
 
 public class MyAppWidgetProvider extends AppWidgetProvider {
 
-    public static List<String> photoGalleries = new ArrayList<>();
-
     public void onUpdate(final Context context, final AppWidgetManager appWidgetManager, final int[] appWidgetIds) {
-        GetPictureUtil.getAllGalleryList(context).continueWith(new Continuation<List<String>, Object>() {
-            @Override
-            public Object then(Task<List<String>> task) {
+        for (int i = 0; i < appWidgetIds.length; ++i) {
 
-                if (task.getError() == null && task.getResult() != null) {
-                    photoGalleries = task.getResult();
+            // Here we setup the intent which points to the StackViewService which will
+            // provide the views for this collection.
+            Intent intent = new Intent(context, WidgetService.class);
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetIds[i]);
+            // When intents are compared, the extras are ignored, so we need to embed the extras
+            // into the data so that the extras will not be ignored.
+            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+            RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
+            rv.setRemoteAdapter(R.id.stack_view, intent);
 
-                    for (int i = 0; i < appWidgetIds.length; ++i) {
+            // The empty view is displayed when the collection has no items. It should be a sibling
+            // of the collection view.
+            rv.setEmptyView(R.id.stack_view, R.id.empty_view);
 
-                        // Here we setup the intent which points to the StackViewService which will
-                        // provide the views for this collection.
-                        Intent intent = new Intent(context, WidgetService.class);
-                        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetIds[i]);
-                        // When intents are compared, the extras are ignored, so we need to embed the extras
-                        // into the data so that the extras will not be ignored.
-                        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-                        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
-                        rv.setRemoteAdapter(R.id.stack_view, intent);
+            // Here we setup the a pending intent template. Individuals items of a collection
+            // cannot setup their own pending intents, instead, the collection as a whole can
+            // setup a pending intent template, and the individual items can set a fillInIntent
+            // to create unique before on an item to item basis.
+            Intent toastIntent = new Intent(context, MyAppWidgetProvider.class);
+            toastIntent.setAction("com.example.android.stackwidget.TOAST_ACTION");
+            toastIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetIds[i]);
+            intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
+            PendingIntent toastPendingIntent = PendingIntent.getBroadcast(context, 0, toastIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            rv.setPendingIntentTemplate(R.id.stack_view, toastPendingIntent);
 
-                        // The empty view is displayed when the collection has no items. It should be a sibling
-                        // of the collection view.
-                        rv.setEmptyView(R.id.stack_view, R.id.empty_view);
-
-                        // Here we setup the a pending intent template. Individuals items of a collection
-                        // cannot setup their own pending intents, instead, the collection as a whole can
-                        // setup a pending intent template, and the individual items can set a fillInIntent
-                        // to create unique before on an item to item basis.
-                        Intent toastIntent = new Intent(context, MyAppWidgetProvider.class);
-                        toastIntent.setAction("com.example.android.stackwidget.TOAST_ACTION");
-                        toastIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetIds[i]);
-                        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-                        PendingIntent toastPendingIntent = PendingIntent.getBroadcast(context, 0, toastIntent,
-                                PendingIntent.FLAG_UPDATE_CURRENT);
-                        rv.setPendingIntentTemplate(R.id.stack_view, toastPendingIntent);
-
-                        appWidgetManager.updateAppWidget(appWidgetIds[i], rv);
-                    }
-                }
-                return null;
-            }
-        }, Task.UI_THREAD_EXECUTOR);
+            appWidgetManager.updateAppWidget(appWidgetIds[i], rv);
+        }
 
         super.onUpdate(context, appWidgetManager, appWidgetIds);
     }
@@ -74,5 +62,7 @@ public class MyAppWidgetProvider extends AppWidgetProvider {
     @Override
     public void onEnabled(Context context) {
         super.onEnabled(context);
+
+        PhotoService.getInstance().queryPhotoUri(context);
     }
 }
