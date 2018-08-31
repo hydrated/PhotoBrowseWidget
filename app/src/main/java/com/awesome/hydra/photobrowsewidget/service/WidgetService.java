@@ -18,6 +18,7 @@ import android.widget.RemoteViewsService;
 
 import com.awesome.hydra.photobrowsewidget.R;
 import com.awesome.hydra.photobrowsewidget.provider.MyAppWidgetProvider;
+import com.awesome.hydra.photobrowsewidget.storage.PhotoList;
 import com.awesome.hydra.photobrowsewidget.util.GetPictureUtil;
 import com.awesome.hydra.photobrowsewidget.view.WidgetItem;
 import com.bumptech.glide.Glide;
@@ -57,25 +58,27 @@ class StackRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
     }
 
     public int getCount() {
-        return MyAppWidgetProvider.photoGalleries.size();
+        return PhotoList.photoGalleries.size();
     }
 
     public RemoteViews getViewAt(int position) {
-        Log.d("hydrated", "position" + position);
 
         RemoteViews rv = new RemoteViews(mContext.getPackageName(), R.layout.widget_item);
-        Uri uri = Uri.fromFile(new File(MyAppWidgetProvider.photoGalleries.get(position)));
+        Uri uri = Uri.fromFile(new File(PhotoList.photoGalleries.get(position)));
 
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
-            rv.setBitmap(R.id.widget_item, "setImageBitmap", bitmap);
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() / 4, bitmap.getHeight() / 4, true);
+            bitmap.recycle();
+
+            rv.setBitmap(R.id.widget_item, "setImageBitmap", scaledBitmap);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
         Bundle extras = new Bundle();
-        extras.putInt("Some String", position);
+        extras.putString("Some String", PhotoList.photoGalleries.get(position));
         Intent fillInIntent = new Intent();
         fillInIntent.putExtras(extras);
         rv.setOnClickFillInIntent(R.id.widget_item, fillInIntent);
